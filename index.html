@@ -441,9 +441,9 @@ function downloadExcel() {
   const readme=[['FlexLM Options File — Parsed Reference'],[`Source: ${currentFile?.name||'unknown'}   Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}`],[],['SUMMARY'],
     ['Unique Users',new Set(DATA.groups.map(r=>r.user)).size],['License Pools',new Set(DATA.groups.map(r=>r.licNum).filter(Boolean)).size],
     ['Unique Toolboxes',new Set(DATA.groups.map(r=>r.toolbox)).size],['Include Rules',DATA.includes.length],['MAX Rules',DATA.maxrules.length],['RESERVE Rules',DATA.reserve.length],
-    [],['SHEET','PURPOSE'],['Groups','One row per user per group — filter by user, toolbox or license pool'],
-    ['Includes','INCLUDE rules — which groups can check out which toolbox'],['EffectiveUsers','Resolved toolbox → user list'],
-    ['MaxRules','Concurrent seat limits per license pool'],['ReserveRules','Guaranteed reserved seats']];
+    [],['SHEET','PURPOSE'],['Groups','Users who are assigned to which toolbox/license pool'],
+    ['Includes','Groups that are authorised to use a given toolbox'],['EffectiveUsers','User who can use this toolbox right now'],
+    ['MaxRules','Number of persons who can use this toolbox simultaneously'],['ReserveRules','Group that have guaranteed reserved seats']];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(readme),'README');
   const g=[['GroupName','Toolbox','LicenseType','LicenseNumber','Username']];
   DATA.groups.forEach(r=>g.push([r.groupName,r.toolbox,r.licType,r.licNum,r.user]));
