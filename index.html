@@ -173,7 +173,6 @@
   <div class="page-title">License File Dashboard</div>
   <div class="page-sub">Upload a FlexLM <code>.opt</code> file to explore and filter license assignments</div>
 
-  <!-- Upload -->
   <div class="card" id="upload-card">
     <div style="padding:20px 24px">
       <div class="upload-label">
@@ -206,7 +205,6 @@
     </div>
   </div>
 
-  <!-- Stats -->
   <div id="stats-row">
     <div class="stat-card"><div class="stat-val" id="s-users">–</div><div class="stat-lbl">Unique Users</div></div>
     <div class="stat-card"><div class="stat-val" id="s-licenses">–</div><div class="stat-lbl">License Pools</div></div>
@@ -215,7 +213,6 @@
     <div class="stat-card"><div class="stat-val" id="s-includes">–</div><div class="stat-lbl">Include Rules</div></div>
   </div>
 
-  <!-- Content -->
   <div class="card" id="content-card">
     <div class="content-header">
       <div class="tab-bar">
@@ -234,7 +231,6 @@
       </div>
     </div>
 
-    <!-- Groups -->
     <div id="panel-groups" class="tab-panel active">
       <div class="toolbar">
         <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search user, toolbox, license…" oninput="filterTable('groups')" id="search-groups"></div>
@@ -246,7 +242,6 @@
       <div class="table-wrap"><table id="tbl-groups"><thead></thead><tbody></tbody></table></div>
     </div>
 
-    <!-- Includes -->
     <div id="panel-includes" class="tab-panel">
       <div class="toolbar">
         <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search toolbox or group…" oninput="filterTable('includes')" id="search-includes"></div>
@@ -256,7 +251,6 @@
       <div class="table-wrap"><table id="tbl-includes"><thead></thead><tbody></tbody></table></div>
     </div>
 
-    <!-- Effective -->
     <div id="panel-effective" class="tab-panel">
       <div class="toolbar">
         <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search toolbox or username…" oninput="filterTable('effective')" id="search-effective"></div>
@@ -266,7 +260,6 @@
       <div class="table-wrap"><table id="tbl-effective"><thead></thead><tbody></tbody></table></div>
     </div>
 
-    <!-- MAX -->
     <div id="panel-maxrules" class="tab-panel">
       <div class="toolbar">
         <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search toolbox…" oninput="filterTable('maxrules')" id="search-maxrules"></div>
@@ -275,7 +268,6 @@
       <div class="table-wrap"><table id="tbl-maxrules"><thead></thead><tbody></tbody></table></div>
     </div>
 
-    <!-- Reserve -->
     <div id="panel-reserve" class="tab-panel">
       <div class="toolbar">
         <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search toolbox or group…" oninput="filterTable('reserve')" id="search-reserve"></div>
@@ -330,18 +322,40 @@ function parseOpt(text) {
   for (const raw of lines) {
     const s = raw.trim(); if (!s) continue;
     let m;
-    if ((m=RM.exec(s)))  { maxrules.push({seats:+m[1],toolbox:m[2],asset:m[3],userType:m[4]}); continue; }
+    // Normalize toolboxes to uppercase to consolidate
+    if ((m=RM.exec(s)))  { maxrules.push({seats:+m[1],toolbox:m[2].toUpperCase(),asset:m[3],userType:m[4]}); continue; }
     if (s.startsWith('#')) continue;
-    if ((m=RG.exec(s)))  { groups[m[1]]=m[2].trim().split(/\s+/); continue; }
-    if ((m=RI.exec(s)))  { includes.push({toolbox:m[1],asset:m[2],grantType:m[3],grantTarget:m[4]}); continue; }
-    if ((m=RR.exec(s)))  { reserve.push({seats:+m[1],toolbox:m[2],asset:m[3],grantType:m[4],grantTarget:m[5]}); }
+    // Normalize group names to upper and merge users to handle duplicates
+    if ((m=RG.exec(s)))  { 
+      const gn = m[1].toUpperCase();
+      groups[gn] = (groups[gn] || []).concat(m[2].trim().split(/\s+/)); 
+      continue; 
+    }
+    // Normalize toolbox and target names
+    if ((m=RI.exec(s)))  { includes.push({toolbox:m[1].toUpperCase(),asset:m[2],grantType:m[3],grantTarget:m[4].toUpperCase()}); continue; }
+    if ((m=RR.exec(s)))  { reserve.push({seats:+m[1],toolbox:m[2].toUpperCase(),asset:m[3],grantType:m[4],grantTarget:m[5].toUpperCase()}); }
   }
   const groupRows=[];
   for (const [name,users] of Object.entries(groups)) {
     let toolbox,licType,licNum;
     let m=RE_SPLIT.exec(name);
-    if (m) { toolbox=m[1]; licType=LIC_TYPE[m[2].toLowerCase()]||m[2]; licNum=m[3]; }
-    else { const mf=RE_FALL.exec(name); if(mf){toolbox=mf[1];licType='(unspecified)';licNum=mf[2];}else{toolbox=name;licType='';licNum='';} }
+    if (m) { 
+      toolbox=m[1].toUpperCase(); // Consolidate toolbox name
+      licType=LIC_TYPE[m[2].toLowerCase()]||m[2]; 
+      licNum=m[3]; 
+    }
+    else { 
+      const mf=RE_FALL.exec(name); 
+      if(mf){
+        toolbox=mf[1].toUpperCase();
+        licType='(unspecified)';
+        licNum=mf[2];
+      }else{
+        toolbox=name.toUpperCase();
+        licType='';
+        licNum='';
+      } 
+    }
     for (const u of users) groupRows.push({groupName:name,toolbox,licType,licNum,user:u});
   }
   const seen={};
@@ -378,6 +392,7 @@ function buildTable(id,headers,rows,raw) {
 function populateFilters() {
   fill('filter-groups-license','All Licenses',[...new Set(DATA.groups.map(r=>r.licNum).filter(Boolean))].sort());
   fill('filter-groups-type',   'All Types',   [...new Set(DATA.groups.map(r=>r.licType).filter(Boolean))].sort());
+  // The normalized data ensures these options are unique regardless of source casing
   fill('filter-groups-toolbox','All Toolboxes',[...new Set(DATA.groups.map(r=>r.toolbox).filter(Boolean))].sort());
   fill('filter-includes-asset','All Licenses',[...new Set(DATA.includes.map(r=>r.asset))].sort());
   fill('filter-effective-asset','All Licenses',[...new Set(DATA.effective.map(r=>r.asset))].sort());
@@ -397,7 +412,8 @@ function filterTable(id) {
     const lic=document.getElementById('filter-groups-license')?.value;
     const typ=document.getElementById('filter-groups-type')?.value;
     const tb =document.getElementById('filter-groups-toolbox')?.value;
-    const keep=raw.map((_,i)=>i).filter(i=>(!lic||raw[i].licNum===lic)&&(!typ||raw[i].licType===typ)&&(!tb||raw[i].toolbox===tb));
+    // Perform case-insensitive comparison for selected toolbox
+    const keep=raw.map((_,i)=>i).filter(i=>(!lic||raw[i].licNum===lic)&&(!typ||raw[i].licType===typ)&&(!tb||raw[i].toolbox.toUpperCase()===tb.toUpperCase()));
     rows=keep.map(i=>rows[i]); raw=keep.map(i=>raw[i]);
   }
   if(id==='includes') { const a=document.getElementById('filter-includes-asset')?.value; const k=raw.map((_,i)=>i).filter(i=>!a||raw[i].asset===a); rows=k.map(i=>rows[i]); raw=k.map(i=>raw[i]); }
