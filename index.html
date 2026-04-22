@@ -300,15 +300,41 @@ function go(file) {
   const fr = document.getElementById('file-row');
   fr.style.display = 'flex';
   document.getElementById('fr-name').textContent = file.name;
-  document.getElementById('fr-size').textContent = (file.size/1024).toFixed(1) + ' KB';
+  document.getElementById('fr-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  
   const bar = document.getElementById('fr-bar');
+  bar.style.transition = 'width 0.2s ease'; // Slightly faster transition for responsiveness
   bar.style.width = '0%';
-  setTimeout(() => bar.style.width = '60%', 50);
+
   const reader = new FileReader();
+
+  // Track actual upload progress
+  reader.onprogress = e => {
+    if (e.lengthComputable) {
+      const pct = (e.loaded / e.total) * 100;
+      bar.style.width = pct + '%';
+    }
+  };
+
   reader.onload = e => {
     bar.style.width = '100%';
-    setTimeout(() => { try { parseOpt(e.target.result); renderAll(); showResults(); } catch(err) { alert('Parse error: '+err.message); resetApp(); } }, 300);
+    
+    // Use requestAnimationFrame to ensure the 100% bar renders 
+    // before the CPU-heavy parsing blocks the UI thread.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        try {
+          parseOpt(e.target.result);
+          renderAll();
+          showResults();
+        } catch (err) {
+          alert('Parse error: ' + err.message);
+          resetApp();
+        }
+      }, 100); // Small delay to let the user see the "Full" bar
+    });
   };
+
   reader.readAsText(file);
 }
 
