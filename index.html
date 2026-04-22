@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPT License Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue:     #2563eb;
+    --blue-lt:  #eff6ff;
+    --blue-mid: #bfdbfe;
+    --text:     #111827;
+    --sub:      #6b7280;
+    --border:   #e5e7eb;
+    --bg:       #f9fafb;
+    --white:    #ffffff;
+    --radius:   10px;
+    --shadow:   0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+  /* Nav */
+  nav {
+    background: var(--white); border-bottom: 1px solid var(--border);
+    padding: 0 32px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--text); text-decoration: none; }
+  .nav-icon { width: 28px; height: 28px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .nav-icon svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-tag { font-size: 11px; color: var(--sub); background: var(--bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 20px; }
+
+  /* Page */
+  .page { max-width: 1200px; margin: 0 auto; padding: 36px 24px 80px; }
+  .page-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .page-sub   { font-size: 14px; color: var(--sub); margin-bottom: 28px; }
+
+  /* Card */
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+  /* Upload */
+  #upload-card { padding: 24px; margin-bottom: 20px; }
+  .upload-label { font-size: 13px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; color: var(--sub); }
+
+  #drop-zone {
+    border: 1.5px dashed var(--border); border-radius: 8px;
+    padding: 40px 20px; text-align: center; cursor: pointer;
+    background: var(--bg); transition: border-color 0.2s, background 0.2s;
+  }
+  #drop-zone:hover, #drop-zone.drag-over { border-color: var(--blue); background: var(--blue-lt); }
+  #file-input { display: none; }
+
+  .dz-icon {
+    width: 44px; height: 44px; background: var(--blue-lt);
+    border: 1px solid var(--blue-mid); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+  }
+  .dz-icon svg { width: 20px; height: 20px; stroke: var(--blue); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .dz-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .dz-title a { color: var(--blue); text-decoration: none; }
+  .dz-sub   { font-size: 12px; color: var(--sub); }
+
+  /* File row */
+  #file-row {
+    display: none; align-items: center; gap: 12px;
+    background: var(--blue-lt); border: 1px solid var(--blue-mid);
+    border-radius: 8px; padding: 12px 14px; margin-top: 12px;
+  }
+  .fr-icon { width: 36px; height: 36px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .fr-icon svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .fr-meta { flex: 1; min-width: 0; }
+  .fr-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fr-size { font-size: 11px; color: var(--sub); margin-top: 2px; }
+  .fr-bar-wrap { height: 3px; background: var(--blue-mid); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .fr-bar { height: 100%; background: var(--blue); border-radius: 2px; width: 0%; transition: width 0.4s ease; }
+  .fr-remove { background: none; border: none; cursor: pointer; padding: 4px; color: var(--sub); border-radius: 4px; }
+  .fr-remove:hover { color: var(--text); }
+  .fr-remove svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+  /* Stats */
+  #stats-row { display: none; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-card { flex:1; min-width: 110px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); }
+  .stat-val  { font-size: 26px; font-weight: 600; color: var(--blue); line-height: 1; }
+  .stat-lbl  { font-size: 11px; color: var(--sub); margin-top: 5px; }
+
+  /* Content */
+  #content-card { display: none; }
+  .content-header { padding: 0 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+  /* Tabs */
+  .tab-bar { display: flex; overflow-x: auto; scrollbar-width: none; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    padding: 14px 16px; font-size: 13px; font-weight: 500;
+    color: var(--sub); background: none; border: none; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 7px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .tab-count { font-size: 11px; font-weight: 500; background: var(--bg); color: var(--sub); padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border); }
+  .tab-btn.active .tab-count { background: var(--blue-lt); color: var(--blue); border-color: var(--blue-mid); }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 7px; border: 1px solid var(--border); font-family: 'Inter',sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-outline { background: var(--white); color: var(--text); }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-primary:hover { background: #1d4ed8; }
+
+  /* Tab panels */
+  .tab-panel { display: none; padding: 16px 20px 20px; }
+  .tab-panel.active { display: block; }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .search-wrap { flex: 1; min-width: 180px; position: relative; }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; stroke: var(--sub); fill: none; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+  .search-input { width: 100%; padding: 8px 10px 8px 32px; background: var(--white); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'Inter',sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+  .search-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+  .search-input::placeholder { color: #9ca3af; }
+  .filter-select { padding: 8px 10px; background: var(--white); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'Inter',sans-serif; font-size: 13px; outline: none; cursor: pointer; min-width: 130px; }
+  .filter-select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+  .result-count { font-size: 12px; color: var(--sub); margin-left: 2px; }
+
+  /* Table */
+  .table-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: auto; max-height: 540px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .table-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; z-index: 2; }
+  th { background: var(--bg); color: var(--sub); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; transition: color 0.15s; }
+  th:hover { color: var(--text); }
+  th .si { margin-left: 3px; opacity: 0.3; font-style: normal; font-size: 10px; }
+  th.sa .si, th.sd .si { opacity: 1; color: var(--blue); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--blue-lt); }
+
+  /* Badges & chips */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .b-blue { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-mid); }
+  .b-grey { background: var(--bg); color: var(--sub); border: 1px solid var(--border); }
+  .mono { font-family: 'SF Mono','Fira Mono',monospace; font-size: 12px; color: var(--sub); }
+  .utag { display: inline-flex; align-items: center; background: var(--blue-lt); border: 1px solid var(--blue-mid); color: var(--blue); border-radius: 4px; padding: 1px 7px; font-size: 12px; font-weight: 500; }
+  .users-wrap { display: flex; flex-wrap: wrap; gap: 4px; max-width: 400px; }
+
+  /* Empty */
+  .empty { text-align: center; padding: 48px; color: var(--sub); font-size: 13px; }
+
+  /* Divider */
+  .vdiv { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="#">
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </div>
+    OPT Viewer
+  </a>
+  <span class="nav-tag">FlexLM License Manager</span>
+</nav>
+
+<div class="page">
+  <div class="page-title">License File Dashboard</div>
+  <div class="page-sub">Upload a FlexLM <code>.opt</code> file to explore and filter license assignments</div>
+
+  <!-- Upload -->
+  <div class="card" id="upload-card">
+    <div style="padding:20px 24px">
+      <div class="upload-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload file &nbsp;<span style="font-weight:400">.opt or .txt accepted</span>
+      </div>
+
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" accept=".opt,.txt">
+        <div class="dz-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="dz-title"><a>Click to upload</a> or drag and drop</div>
+        <div class="dz-sub">FlexLM / FlexNet options file</div>
+      </div>
+
+      <div id="file-row">
+        <div class="fr-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="fr-meta">
+          <div class="fr-name" id="fr-name">—</div>
+          <div class="fr-size" id="fr-size">—</div>
+          <div class="fr-bar-wrap"><div class="fr-bar" id="fr-bar"></div></div>
+        </div>
+        <button class="fr-remove" onclick="resetApp()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats-row">
+    <div class="stat-card"><div class="stat-val" id="s-users">–</div><div class="stat-lbl">Unique Users</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-licenses">–</div><div class="stat-lbl">License Pools</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-toolboxes">–</div><div class="stat-lbl">Toolboxes</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-groups">–</div><div class="stat-lbl">Groups</div></div>
+    <div class="stat-card"><div class="stat-val" id="s-includes">–</div><div class="stat-lbl">Include Rules</div></div>
+  </div>
+
+  <!-- Content -->
+  <div class="card" id="content-card">
+    <div class="content-header">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('groups',this)">Groups <span class="tab-count" id="tc-groups">0</span></button>
+        <button class="tab-btn" onclick="switchTab('includes',this)">Includes <span class="tab-count" id="tc-includes">0</span></button>
+        <button class="tab-btn" onclick="switchTab('effective',this)">Effective Users <span class="tab-count" id="tc-effective">0</span></button>
+        <button class="tab-btn" onclick="switchTab('maxrules',this)">MAX Rules <span class="tab-count" id="tc-maxrules">0</span></button>
+        <button class="tab-btn" onclick="switchTab('reserve',this)">Reserve Rules <span class="tab-count" id="tc-reserve">0</span></button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:12px">
+        <div class="vdiv"></div>
+        <button class="btn btn-primary" onclick="downloadExcel()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Excel
+        </button>
+      </div>
+    </div>
+
+    <!-- Groups -->
+    <div id="panel-groups" class="tab-panel active">
+      <div class="toolbar">
+        <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search user, toolbox, license…" oninput="filterTable('groups')" id="search-groups"></div>
+        <select class="filter-select" id="filter-groups-license" onchange="filterTable('groups')"><option value="">All Licenses</option></select>
+        <select class="filter-select" id="filter-groups-type"    onchange="filterTable('groups')"><option value="">All Types</option></select>
+        <select class="filter-select" id="filter-groups-toolbox" onchange="filterTable('groups')"><option value="">All Toolboxes</option></select>
+        <span class="result-count" id="rc-groups"></span>
+      </div>
+      <div class="table-wrap"><table id="tbl-groups"><thead></thead><tbody></tbody></table></div>
+    </div>
+
+    <!-- Includes -->
+    <div id="panel-includes" class="tab-panel">
+      <div class="toolbar">
+        <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search toolbox or group…" oninput="filterTable('includes')" id="search-includes"></div>
+        <select class="filter-select" id="filter-includes-asset" onchange="filterTable('includes')"><option value="">All Licenses</option></select>
+        <span class="result-count" id="rc-includes"></span>
+      </div>
+      <div class="table-wrap"><table id="tbl-includes"><thead></thead><tbody></tbody></table></div>
+    </div>
+
+    <!-- Effective -->
+    <div id="panel-effective" class="tab-panel">
+      <div class="toolbar">
+        <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search toolbox or username…" oninput="filterTable('effective')" id="search-effective"></div>
+        <select class="filter-select" id="filter-effective-asset" onchange="filterTable('effective')"><option value="">All Licenses</option></select>
+        <span class="result-count" id="rc-effective"></span>
+      </div>
+      <div class="table-wrap"><table id="tbl-effective"><thead></thead><tbody></tbody></table></div>
+    </div>
+
+    <!-- MAX -->
+    <div id="panel-maxrules" class="tab-panel">
+      <div class="toolbar">
+        <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search toolbox…" oninput="filterTable('maxrules')" id="search-maxrules"></div>
+        <span class="result-count" id="rc-maxrules"></span>
+      </div>
+      <div class="table-wrap"><table id="tbl-maxrules"><thead></thead><tbody></tbody></table></div>
+    </div>
+
+    <!-- Reserve -->
+    <div id="panel-reserve" class="tab-panel">
+      <div class="toolbar">
+        <div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" placeholder="Search toolbox or group…" oninput="filterTable('reserve')" id="search-reserve"></div>
+        <span class="result-count" id="rc-reserve"></span>
+      </div>
+      <div class="table-wrap"><table id="tbl-reserve"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+let DATA = { groups:[], includes:[], effective:[], maxrules:[], reserve:[] };
+let SORT = {}, currentFile = null;
+
+const LIC_TYPE = { nnu:'Network Named User', nni:'Network Named Installation', concurrent:'Concurrent' };
+const RE_SPLIT = /^(.+?)_(NNU|Concurrent|NNI)_(\d+)$/i;
+const RE_FALL  = /^(.+?)_(\d+)$/;
+
+// Drop zone
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if(f) go(f); });
+document.getElementById('file-input').addEventListener('change', e => { if(e.target.files[0]) go(e.target.files[0]); });
+
+function go(file) {
+  currentFile = file;
+  const fr = document.getElementById('file-row');
+  fr.style.display = 'flex';
+  document.getElementById('fr-name').textContent = file.name;
+  document.getElementById('fr-size').textContent = (file.size/1024).toFixed(1) + ' KB';
+  const bar = document.getElementById('fr-bar');
+  bar.style.width = '0%';
+  setTimeout(() => bar.style.width = '60%', 50);
+  const reader = new FileReader();
+  reader.onload = e => {
+    bar.style.width = '100%';
+    setTimeout(() => { try { parseOpt(e.target.result); renderAll(); showResults(); } catch(err) { alert('Parse error: '+err.message); resetApp(); } }, 300);
+  };
+  reader.readAsText(file);
+}
+
+function parseOpt(text) {
+  const lines = text.split(/\r?\n/);
+  const groups={}, includes=[], maxrules=[], reserve=[];
+  const RG = /^GROUP\s+(\S+)\s+(.+)$/i;
+  const RI = /^INCLUDE\s+"([^"]+?)\s+asset_info=(\d+)"\s+(\w+)\s+(\S+)/i;
+  const RM = /^#?MAX\s+(\d+)\s+"([^"]+?)\s+asset_info\s*=\s*(\d+)"\s+\w+\s+(\S+)/i;
+  const RR = /^RESERVE\s+(\d+)\s+"([^"]+?)\s+asset_info=(\d+)"\s+(\w+)\s+(\S+)/i;
+  for (const raw of lines) {
+    const s = raw.trim(); if (!s) continue;
+    let m;
+    if ((m=RM.exec(s)))  { maxrules.push({seats:+m[1],toolbox:m[2],asset:m[3],userType:m[4]}); continue; }
+    if (s.startsWith('#')) continue;
+    if ((m=RG.exec(s)))  { groups[m[1]]=m[2].trim().split(/\s+/); continue; }
+    if ((m=RI.exec(s)))  { includes.push({toolbox:m[1],asset:m[2],grantType:m[3],grantTarget:m[4]}); continue; }
+    if ((m=RR.exec(s)))  { reserve.push({seats:+m[1],toolbox:m[2],asset:m[3],grantType:m[4],grantTarget:m[5]}); }
+  }
+  const groupRows=[];
+  for (const [name,users] of Object.entries(groups)) {
+    let toolbox,licType,licNum;
+    let m=RE_SPLIT.exec(name);
+    if (m) { toolbox=m[1]; licType=LIC_TYPE[m[2].toLowerCase()]||m[2]; licNum=m[3]; }
+    else { const mf=RE_FALL.exec(name); if(mf){toolbox=mf[1];licType='(unspecified)';licNum=mf[2];}else{toolbox=name;licType='';licNum='';} }
+    for (const u of users) groupRows.push({groupName:name,toolbox,licType,licNum,user:u});
+  }
+  const seen={};
+  for (const inc of includes) {
+    const k=`${inc.toolbox}|||${inc.asset}`; if(!seen[k])seen[k]=new Set();
+    if(inc.grantType.toUpperCase()==='GROUP') (groups[inc.grantTarget]||[`[unresolved] ${inc.grantTarget}`]).forEach(u=>seen[k].add(u));
+    else seen[k].add(inc.grantTarget);
+  }
+  const effective=Object.entries(seen).map(([k,us])=>{const[t,a]=k.split('|||');return{toolbox:t,asset:a,users:[...us].sort()};});
+  DATA={groups:groupRows,includes,effective,maxrules,reserve};
+}
+
+function renderAll() {
+  buildTable('groups',['Group Name','Toolbox','License Type','License No.','Username'],
+    DATA.groups.map(r=>[mono(r.groupName),r.toolbox,r.licType?bdg(r.licType,r.licType==='(unspecified)'?'b-grey':'b-blue'):'–',mono(r.licNum||'–'),utag(r.user)]),DATA.groups);
+  buildTable('includes',['Toolbox','License No.','Grant Type','Grant Target'],
+    DATA.includes.map(r=>[r.toolbox,mono(r.asset),bdg(r.grantType,'b-blue'),mono(r.grantTarget)]),DATA.includes);
+  buildTable('effective',['Toolbox','License No.','Users','Count'],
+    DATA.effective.map(r=>[r.toolbox,mono(r.asset),`<div class="users-wrap">${r.users.map(u=>utag(u)).join('')}</div>`,bdg(r.users.length,'b-blue')]),DATA.effective);
+  buildTable('maxrules',['Max Seats','Toolbox','License No.','User Type'],
+    DATA.maxrules.map(r=>[bdg(r.seats,'b-blue'),r.toolbox,mono(r.asset),mono(r.userType)]),DATA.maxrules);
+  buildTable('reserve',['Reserved Seats','Toolbox','License No.','Grant Type','Grant Target'],
+    DATA.reserve.map(r=>[bdg(r.seats,'b-blue'),r.toolbox,mono(r.asset),bdg(r.grantType,'b-grey'),mono(r.grantTarget)]),DATA.reserve);
+  populateFilters(); updateCounts();
+}
+
+function buildTable(id,headers,rows,raw) {
+  const tbl=document.getElementById('tbl-'+id);
+  tbl.querySelector('thead').innerHTML='<tr>'+headers.map((h,i)=>`<th onclick="sortTbl('${id}',${i})">${h} <i class="si">↕</i></th>`).join('')+'</tr>';
+  tbl.querySelector('tbody').innerHTML=rows.length?rows.map(c=>'<tr>'+c.map(x=>`<td>${x}</td>`).join('')+'</tr>').join(''):`<tr><td colspan="${headers.length}"><div class="empty">No data available</div></td></tr>`;
+  tbl._r=raw; tbl._h=rows; tbl._hd=headers;
+}
+
+function populateFilters() {
+  fill('filter-groups-license','All Licenses',[...new Set(DATA.groups.map(r=>r.licNum).filter(Boolean))].sort());
+  fill('filter-groups-type',   'All Types',   [...new Set(DATA.groups.map(r=>r.licType).filter(Boolean))].sort());
+  fill('filter-groups-toolbox','All Toolboxes',[...new Set(DATA.groups.map(r=>r.toolbox).filter(Boolean))].sort());
+  fill('filter-includes-asset','All Licenses',[...new Set(DATA.includes.map(r=>r.asset))].sort());
+  fill('filter-effective-asset','All Licenses',[...new Set(DATA.effective.map(r=>r.asset))].sort());
+}
+
+function fill(id,ph,vals) {
+  const s=document.getElementById(id); if(!s)return;
+  const cur=s.value;
+  s.innerHTML=`<option value="">${ph}</option>`+vals.map(v=>`<option${v===cur?' selected':''}>${v}</option>`).join('');
+}
+
+function filterTable(id) {
+  const tbl=document.getElementById('tbl-'+id);
+  const q=(document.getElementById('search-'+id)?.value||'').toLowerCase();
+  let rows=[...(tbl._h||[])], raw=[...(tbl._r||[])];
+  if(id==='groups') {
+    const lic=document.getElementById('filter-groups-license')?.value;
+    const typ=document.getElementById('filter-groups-type')?.value;
+    const tb =document.getElementById('filter-groups-toolbox')?.value;
+    const keep=raw.map((_,i)=>i).filter(i=>(!lic||raw[i].licNum===lic)&&(!typ||raw[i].licType===typ)&&(!tb||raw[i].toolbox===tb));
+    rows=keep.map(i=>rows[i]); raw=keep.map(i=>raw[i]);
+  }
+  if(id==='includes') { const a=document.getElementById('filter-includes-asset')?.value; const k=raw.map((_,i)=>i).filter(i=>!a||raw[i].asset===a); rows=k.map(i=>rows[i]); raw=k.map(i=>raw[i]); }
+  if(id==='effective') { const a=document.getElementById('filter-effective-asset')?.value; const k=raw.map((_,i)=>i).filter(i=>!a||raw[i].asset===a); rows=k.map(i=>rows[i]); raw=k.map(i=>raw[i]); }
+  if(q) rows=rows.filter(c=>c.some(x=>x.toString().toLowerCase().includes(q)));
+  tbl.querySelector('tbody').innerHTML=rows.length?rows.map(c=>'<tr>'+c.map(x=>`<td>${x}</td>`).join('')+'</tr>').join(''):`<tr><td colspan="${tbl._hd.length}"><div class="empty">No matching records</div></td></tr>`;
+  const rc=document.getElementById('rc-'+id); if(rc) rc.textContent=rows.length+' result'+(rows.length!==1?'s':'');
+}
+
+function sortTbl(id,col) {
+  const tbl=document.getElementById('tbl-'+id), k=id+'-'+col;
+  const dir=SORT[k]==='asc'?'desc':'asc'; SORT[k]=dir;
+  tbl.querySelectorAll('th').forEach((th,i)=>{th.classList.remove('sa','sd');th.querySelector('.si').textContent='↕';if(i===col){th.classList.add(dir==='asc'?'sa':'sd');th.querySelector('.si').textContent=dir==='asc'?'↑':'↓';}});
+  const strip=s=>s.toString().replace(/<[^>]+>/g,'').trim();
+  const sorted=[...tbl._h].sort((a,b)=>{const va=strip(a[col]).toLowerCase(),vb=strip(b[col]).toLowerCase(),na=parseFloat(va),nb=parseFloat(vb),cmp=(!isNaN(na)&&!isNaN(nb))?na-nb:va.localeCompare(vb);return dir==='asc'?cmp:-cmp;});
+  tbl.querySelector('tbody').innerHTML=sorted.map(c=>'<tr>'+c.map(x=>`<td>${x}</td>`).join('')+'</tr>').join('');
+}
+
+function updateCounts() {
+  el('tc-groups',DATA.groups.length); el('tc-includes',DATA.includes.length);
+  el('tc-effective',DATA.effective.length); el('tc-maxrules',DATA.maxrules.length); el('tc-reserve',DATA.reserve.length);
+  el('s-users',new Set(DATA.groups.map(r=>r.user)).size);
+  el('s-licenses',new Set(DATA.groups.map(r=>r.licNum).filter(Boolean)).size);
+  el('s-toolboxes',new Set(DATA.groups.map(r=>r.toolbox)).size);
+  el('s-groups',new Set(DATA.groups.map(r=>r.groupName)).size);
+  el('s-includes',DATA.includes.length);
+  ['groups','includes','effective','maxrules','reserve'].forEach(t=>{
+    const d=DATA[t]; el('rc-'+t, (Array.isArray(d)?d.length:0)+' results');
+  });
+}
+
+function switchTab(id,btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function downloadExcel() {
+  const wb=XLSX.utils.book_new(), nm=currentFile?currentFile.name.replace(/\.[^.]+$/,''):'opt';
+  const readme=[['FlexLM Options File — Parsed Reference'],[`Source: ${currentFile?.name||'unknown'}   Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}`],[],['SUMMARY'],
+    ['Unique Users',new Set(DATA.groups.map(r=>r.user)).size],['License Pools',new Set(DATA.groups.map(r=>r.licNum).filter(Boolean)).size],
+    ['Unique Toolboxes',new Set(DATA.groups.map(r=>r.toolbox)).size],['Include Rules',DATA.includes.length],['MAX Rules',DATA.maxrules.length],['RESERVE Rules',DATA.reserve.length],
+    [],['SHEET','PURPOSE'],['Groups','One row per user per group — filter by user, toolbox or license pool'],
+    ['Includes','INCLUDE rules — which groups can check out which toolbox'],['EffectiveUsers','Resolved toolbox → user list'],
+    ['MaxRules','Concurrent seat limits per license pool'],['ReserveRules','Guaranteed reserved seats']];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(readme),'README');
+  const g=[['GroupName','Toolbox','LicenseType','LicenseNumber','Username']];
+  DATA.groups.forEach(r=>g.push([r.groupName,r.toolbox,r.licType,r.licNum,r.user]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(g),'Groups');
+  const inc=[['Toolbox','AssetInfo','GrantType','GrantTarget']];
+  DATA.includes.forEach(r=>inc.push([r.toolbox,r.asset,r.grantType,r.grantTarget]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(inc),'Includes');
+  const eff=[['Toolbox','AssetInfo','EffectiveUsers','UserCount']];
+  DATA.effective.forEach(r=>eff.push([r.toolbox,r.asset,r.users.join(', '),r.users.length]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(eff),'EffectiveUsers');
+  const mx=[['MaxSeats','Toolbox','AssetInfo','UserType']];
+  DATA.maxrules.forEach(r=>mx.push([r.seats,r.toolbox,r.asset,r.userType]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mx),'MaxRules');
+  const rv=[['ReserveSeats','Toolbox','AssetInfo','GrantType','GrantTarget']];
+  DATA.reserve.forEach(r=>rv.push([r.seats,r.toolbox,r.asset,r.grantType,r.grantTarget]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rv),'ReserveRules');
+  XLSX.writeFile(wb,nm+'_parsed.xlsx');
+}
+
+function showResults() {
+  document.getElementById('stats-row').style.cssText='display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap';
+  document.getElementById('content-card').style.display='block';
+}
+
+function resetApp() {
+  DATA={groups:[],includes:[],effective:[],maxrules:[],reserve:[]}; currentFile=null;
+  document.getElementById('file-row').style.display='none';
+  document.getElementById('stats-row').style.display='none';
+  document.getElementById('content-card').style.display='none';
+  document.getElementById('file-input').value='';
+}
+
+function el(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function mono(s){return `<span class="mono">${s}</span>`;}
+function utag(u){return `<span class="utag">${u}</span>`;}
+function bdg(t,c){return `<span class="badge ${c}">${t}</span>`;}
+</script>
+</body>
+</html>
